@@ -1,0 +1,127 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define SIZE 5
+
+void toUpperCase(char *str) {
+    for (int i = 0; str[i]; i++) {
+        str[i] = toupper(str[i]);
+    }
+}
+
+void prepareKey(char *key, char *keySquare) {
+    int alphaTable[26] = {0}; // Track the occurrence of each letter
+    int kIndex = 0;
+
+    // Handle 'J' as 'I'
+    alphaTable['J' - 'A'] = 1;
+
+    for (int i = 0; i < strlen(key); i++) {
+        if (!isalpha(key[i])) continue; // Ignore non-alphabetic characters
+        char letter = toupper(key[i]);
+        if (alphaTable[letter - 'A'] == 0) { // If the letter hasn't been used
+            keySquare[kIndex++] = letter;
+            alphaTable[letter - 'A'] = 1;
+        }
+    }
+
+    for (char letter = 'A'; letter <= 'Z'; letter++) {
+        if (alphaTable[letter - 'A'] == 0) {
+            keySquare[kIndex++] = letter;
+        }
+    }
+}
+
+void createPlayfairMatrix(char *keySquare, char matrix[SIZE][SIZE]) {
+    int k = 0;
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            matrix[i][j] = keySquare[k++];
+        }
+    }
+}
+
+void findPosition(char letter, char matrix[SIZE][SIZE], int *row, int *col) {
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            if (matrix[i][j] == letter) {
+                *row = i;
+                *col = j;
+                return;
+            }
+        }
+    }
+}
+
+void encryptPair(char a, char b, char matrix[SIZE][SIZE], char *cipherText) {
+    int row1, col1, row2, col2;
+    findPosition(a, matrix, &row1, &col1);
+    findPosition(b, matrix, &row2, &col2);
+
+    if (row1 == row2) {
+        cipherText[0] = matrix[row1][(col1 + 1) % SIZE];
+        cipherText[1] = matrix[row2][(col2 + 1) % SIZE];
+    } else if (col1 == col2) {
+        cipherText[0] = matrix[(row1 + 1) % SIZE][col1];
+        cipherText[1] = matrix[(row2 + 1) % SIZE][col2];
+    } else {
+        cipherText[0] = matrix[row1][col2];
+        cipherText[1] = matrix[row2][col1];
+    }
+}
+
+void prepareText(char *text, char *preparedText) {
+    int len = strlen(text);
+    int pIndex = 0;
+
+    for (int i = 0; i < len; i++) {
+        if (isalpha(text[i])) {
+            preparedText[pIndex++] = toupper(text[i]);
+        }
+    }
+
+    if (pIndex % 2 != 0) {
+        preparedText[pIndex++] = 'X';
+    }
+    preparedText[pIndex] = '\0';
+}
+
+void encryptPlayfair(char *plainText, char *key, char *cipherText) {
+    char keySquare[26];
+    char matrix[SIZE][SIZE];
+    char preparedText[100];
+    int cIndex = 0;
+
+    prepareKey(key, keySquare);
+    createPlayfairMatrix(keySquare, matrix);
+    prepareText(plainText, preparedText);
+
+    for (int i = 0; i < strlen(preparedText); i += 2) {
+        if (preparedText[i] == preparedText[i + 1]) {
+            encryptPair(preparedText[i], 'X', matrix, &cipherText[cIndex]);
+        } else {
+            encryptPair(preparedText[i], preparedText[i + 1], matrix, &cipherText[cIndex]);
+        }
+        cIndex += 2;
+    }
+    cipherText[cIndex] = '\0';
+}
+
+int main() {
+    char plainText[100], key[50], cipherText[100];
+
+    printf("Enter the keyword: ");
+    fgets(key, sizeof(key), stdin);
+    key[strcspn(key, "\n")] = '\0'; // Remove newline character
+
+    printf("Enter the plaintext: ");
+    fgets(plainText, sizeof(plainText), stdin);
+    plainText[strcspn(plainText, "\n")] = '\0'; // Remove newline character
+
+    encryptPlayfair(plainText, key, cipherText);
+
+    printf("Ciphertext: %s\n", cipherText);
+
+    return 0;
+}
